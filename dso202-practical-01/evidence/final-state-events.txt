@@ -1,0 +1,15 @@
+LAST SEEN   TYPE      REASON                 OBJECT                                 MESSAGE
+30m         Warning   Failed                 pod/web-deployment-67499b7844-ccvp2    Failed to pull image "nginx:9.99-does-not-exist": failed to pull and unpack image "docker.io/library/nginx:9.99-does-not-exist": failed to resolve reference "docker.io/library/nginx:9.99-does-not-exist": failed to do request: Head "https://registry-1.docker.io/v2/library/nginx/manifests/9.99-does-not-exist": dial tcp: lookup registry-1.docker.io on 192.168.65.254:53: no such host
+30m         Normal    TaintManagerEviction   pod/web-deployment-76ddf5fcf9-fzpdk    Cancelling deletion of Pod dso202-practical-01/web-deployment-76ddf5fcf9-fzpdk
+27m         Normal    Pulling                pod/web-deployment-67499b7844-ccvp2    Pulling image "nginx:9.99-does-not-exist"
+26m         Warning   Failed                 pod/web-deployment-67499b7844-ccvp2    Error: ErrImagePull
+26m         Warning   Failed                 pod/web-deployment-67499b7844-ccvp2    Failed to pull image "nginx:9.99-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "docker.io/library/nginx:9.99-does-not-exist": failed to resolve reference "docker.io/library/nginx:9.99-does-not-exist": docker.io/library/nginx:9.99-does-not-exist: not found
+25m         Warning   Failed                 pod/web-deployment-67499b7844-ccvp2    Error: ImagePullBackOff
+25m         Normal    BackOff                pod/web-deployment-67499b7844-ccvp2    Back-off pulling image "nginx:9.99-does-not-exist"
+25m         Normal    SuccessfulDelete       replicaset/web-deployment-67499b7844   Deleted pod: web-deployment-67499b7844-ccvp2
+25m         Normal    ScalingReplicaSet      deployment/web-deployment              Scaled down replica set web-deployment-67499b7844 from 1 to 0
+15m         Normal    Scheduled              pod/client-pod                         Successfully assigned dso202-practical-01/client-pod to worker-node-2
+15m         Normal    Pulling                pod/client-pod                         Pulling image "busybox:1.37"
+15m         Normal    Created                pod/client-pod                         Container created
+15m         Normal    Pulled                 pod/client-pod                         Successfully pulled image "busybox:1.37" in 11.946s (11.946s including waiting). Image size: 2222111 bytes.
+15m         Normal    Started                pod/client-pod                         Container started
