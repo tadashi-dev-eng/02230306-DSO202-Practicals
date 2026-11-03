@@ -17,7 +17,7 @@ metadata:
 spec:
   # Experiment 1 changes this value in Git; Experiment 2 changes it with
   # kubectl and Argo CD's selfHeal puts it back to whatever Git says.
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: webapp
