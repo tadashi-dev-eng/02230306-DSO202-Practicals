@@ -1,0 +1,106 @@
+# ---- Module 4 Step 1: cluster ----
+$ kubectl config current-context
+kind-dso202-p2
+
+$ kubectl get nodes
+NAME            STATUS   ROLES           AGE   VERSION
+control-plane   Ready    control-plane   58d   v1.36.1
+worker-node-1   Ready    <none>          58d   v1.36.1
+worker-node-2   Ready    <none>          58d   v1.36.1
+
+# ---- Module 4 Step 2: Argo CD install (namespace already existed from an earlier attempt) ----
+$ kubectl get namespace argocd
+NAME     STATUS   AGE
+argocd   Active   7d7h
+
+$ kubectl get pods -n argocd
+NAME                                                READY   STATUS    RESTARTS          AGE
+argocd-application-controller-0                     1/1     Running   14 (104m ago)     7d7h
+argocd-applicationset-controller-58bb5c7479-8q4gq   0/1     Error     221 (7m47s ago)   7d7h
+argocd-dex-server-dd6b85d9c-9q7z4                   1/1     Running   13 (104m ago)     7d7h
+argocd-notifications-controller-6b85c65458-b2xjf    1/1     Running   14 (104m ago)     7d7h
+argocd-redis-869b85489d-84hd9                       1/1     Running   15 (104m ago)     7d7h
+argocd-repo-server-5bf66565cd-wpcl5                 1/1     Running   14 (104m ago)     7d7h
+argocd-server-7474bb8f76-t6qf2                      1/1     Running   14 (104m ago)     7d7h
+
+$ kubectl logs -n argocd deploy/argocd-applicationset-controller --tail=50 | grep -o 'no matches for kind [^,]*' | head -1
+no matches for kind \"ApplicationSet\" in version \"argoproj.io/v1alpha1\""
+
+$ kubectl get crd | grep argoproj
+applications.argoproj.io        2026-10-27T08:17:40Z
+appprojects.argoproj.io         2026-10-27T08:17:40Z
+
+# Fix: the ApplicationSet CRD is too large for client-side apply (last-applied annotation > 256KiB), so re-apply the stable manifest server-side
+$ kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml | grep -v unchanged | tail -n 15
+service/argocd-server-metrics serverside-applied
+deployment.apps/argocd-applicationset-controller serverside-applied
+deployment.apps/argocd-dex-server serverside-applied
+deployment.apps/argocd-notifications-controller serverside-applied
+deployment.apps/argocd-redis serverside-applied
+deployment.apps/argocd-repo-server serverside-applied
+deployment.apps/argocd-server serverside-applied
+statefulset.apps/argocd-application-controller serverside-applied
+networkpolicy.networking.k8s.io/argocd-application-controller-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-applicationset-controller-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-dex-server-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-notifications-controller-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-redis-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-repo-server-network-policy serverside-applied
+networkpolicy.networking.k8s.io/argocd-server-network-policy serverside-applied
+
+$ kubectl get crd | grep argoproj
+applications.argoproj.io        2026-10-27T08:17:40Z
+applicationsets.argoproj.io     2026-11-03T15:49:23Z
+appprojects.argoproj.io         2026-10-27T08:17:40Z
+
+$ kubectl rollout restart deployment/argocd-applicationset-controller -n argocd
+deployment.apps/argocd-applicationset-controller restarted
+
+$ kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=180s
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "argocd-applicationset-controller" rollout to finish: 1 old replicas are pending termination...
+deployment "argocd-applicationset-controller" successfully rolled out
+
+$ kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+pod/argocd-application-controller-0 condition met
+pod/argocd-applicationset-controller-5cc5ff4f47-h7lw6 condition met
+Error from server (NotFound): pods "argocd-applicationset-controller-55c66d99d6-stts2" not found
+timed out waiting for the condition on pods/argocd-dex-server-6997986758-mqjsf
+timed out waiting for the condition on pods/argocd-dex-server-dd6b85d9c-9q7z4
+timed out waiting for the condition on pods/argocd-notifications-controller-788bdb44d5-p57qk
+timed out waiting for the condition on pods/argocd-redis-59d8f495b5-gdpqc
+timed out waiting for the condition on pods/argocd-redis-869b85489d-84hd9
+timed out waiting for the condition on pods/argocd-repo-server-5bf66565cd-wpcl5
+timed out waiting for the condition on pods/argocd-repo-server-656b96f67d-xf2cw
+timed out waiting for the condition on pods/argocd-server-7474bb8f76-t6qf2
+timed out waiting for the condition on pods/argocd-server-764dc8f847-56tjx
+
+$ kubectl get pods -n argocd
+NAME                                                READY   STATUS            RESTARTS        AGE
+argocd-application-controller-0                     1/1     Running           0               5m53s
+argocd-applicationset-controller-5cc5ff4f47-h7lw6   1/1     Running           0               5m53s
+argocd-dex-server-6997986758-mqjsf                  0/1     PodInitializing   0               5m55s
+argocd-dex-server-dd6b85d9c-9q7z4                   1/1     Running           13 (110m ago)   7d7h
+argocd-notifications-controller-788bdb44d5-p57qk    1/1     Running           0               5m54s
+argocd-redis-59d8f495b5-gdpqc                       0/1     PodInitializing   0               5m54s
+argocd-redis-869b85489d-84hd9                       1/1     Running           15 (110m ago)   7d7h
+argocd-repo-server-656b96f67d-xf2cw                 1/1     Running           0               5m54s
+argocd-server-764dc8f847-56tjx                      1/1     Running           0               5m54s
+
+$ kubectl get deploy argocd-server -n argocd -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+quay.io/argoproj/argocd:v3.5.7
+
+# ---- final state after new images were pulled ----
+$ kubectl get pods -n argocd
+NAME                                                READY   STATUS    RESTARTS   AGE
+argocd-application-controller-0                     1/1     Running   0          10m
+argocd-applicationset-controller-5cc5ff4f47-h7lw6   1/1     Running   0          10m
+argocd-dex-server-6997986758-mqjsf                  1/1     Running   0          10m
+argocd-notifications-controller-788bdb44d5-p57qk    1/1     Running   0          10m
+argocd-redis-59d8f495b5-gdpqc                       1/1     Running   0          10m
+argocd-repo-server-656b96f67d-xf2cw                 1/1     Running   0          10m
+argocd-server-764dc8f847-56tjx                      1/1     Running   0          10m

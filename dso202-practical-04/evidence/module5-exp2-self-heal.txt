@@ -1,0 +1,58 @@
+# ---- Module 5 Step 4: Experiment 2 - configuration drift and self-heal ----
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH    REVISION
+my-webapp   Synced   Healthy   a09122732e6035ce547807475b409409849ff74e
+
+$ kubectl get deployment webapp-deploy -n demo-app
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+webapp-deploy   4/4     4            4           2m43s
+
+$ kubectl scale deployment webapp-deploy -n demo-app --replicas=1
+deployment.apps/webapp-deploy scaled
+
+# sampling spec.replicas / ready replicas / Argo CD sync status once per second
+$ for i in $(seq 1 15); do echo "$(date +%T)  spec=$(kubectl get deploy webapp-deploy -n demo-app -o jsonpath={.spec.replicas})  ready=$(kubectl get deploy webapp-deploy -n demo-app -o jsonpath={.status.readyReplicas})  app=$(kubectl get application my-webapp -n argocd -o jsonpath={.status.sync.status}/{.status.health.status})"; sleep 1; done
+22:00:07  spec=1  ready=1  app=OutOfSync/Healthy
+22:00:08  spec=4  ready=4  app=Synced/Healthy
+22:00:09  spec=4  ready=4  app=Synced/Healthy
+22:00:10  spec=4  ready=4  app=Synced/Healthy
+22:00:12  spec=4  ready=4  app=Synced/Healthy
+22:00:13  spec=4  ready=4  app=Synced/Healthy
+22:00:14  spec=4  ready=4  app=Synced/Healthy
+22:00:15  spec=4  ready=4  app=Synced/Healthy
+22:00:16  spec=4  ready=4  app=Synced/Healthy
+22:00:17  spec=4  ready=4  app=Synced/Healthy
+22:00:18  spec=4  ready=4  app=Synced/Healthy
+22:00:20  spec=4  ready=4  app=Synced/Healthy
+22:00:21  spec=4  ready=4  app=Synced/Healthy
+22:00:22  spec=4  ready=4  app=Synced/Healthy
+22:00:23  spec=4  ready=4  app=Synced/Healthy
+
+$ kubectl get deployment webapp-deploy -n demo-app
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+webapp-deploy   4/4     4            4           3m
+
+$ kubectl get pods -n demo-app -o wide
+NAME                             READY   STATUS    RESTARTS   AGE   IP            NODE            NOMINATED NODE   READINESS GATES
+webapp-deploy-6bd9c658d4-7s7b2   1/1     Running   0          17s   10.244.2.38   worker-node-1   <none>           <none>
+webapp-deploy-6bd9c658d4-mx5xv   1/1     Running   0          17s   10.244.1.23   worker-node-2   <none>           <none>
+webapp-deploy-6bd9c658d4-rsmgv   1/1     Running   0          3m    10.244.1.20   worker-node-2   <none>           <none>
+webapp-deploy-6bd9c658d4-t7n4d   1/1     Running   0          17s   10.244.2.39   worker-node-1   <none>           <none>
+
+$ kubectl get events -n argocd --field-selector involvedObject.name=my-webapp --sort-by=.lastTimestamp | tail -n 6
+17s         Normal   ResourceUpdated      application/my-webapp   Updated health status: Healthy -> Progressing
+17s         Normal   ResourceUpdated      application/my-webapp   Updated health status: Progressing -> Healthy
+17s         Normal   OperationCompleted   application/my-webapp   Partial sync operation to a09122732e6035ce547807475b409409849ff74e succeeded
+17s         Normal   ResourceUpdated      application/my-webapp   Updated sync status: OutOfSync -> Synced
+17s         Normal   ResourceUpdated      application/my-webapp   Updated health status: Healthy -> Progressing
+16s         Normal   ResourceUpdated      application/my-webapp   Updated health status: Progressing -> Healthy
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{.status.operationState.operation.initiatedBy}{"\n"}{.status.operationState.message}{"\n"}{.status.operationState.finishedAt}{"\n"}'
+{"automated":true}
+successfully synced (all tasks run)
+2026-11-03T16:00:07Z
+
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH    REVISION
+my-webapp   Synced   Healthy   a09122732e6035ce547807475b409409849ff74e
+

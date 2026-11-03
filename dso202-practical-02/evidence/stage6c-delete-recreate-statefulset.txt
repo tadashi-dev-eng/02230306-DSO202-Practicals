@@ -1,0 +1,37 @@
+$ kubectl delete statefulset webnote
+statefulset.apps "webnote" deleted from dso202-practical-02 namespace
+
+$ kubectl get pods -l app=webnote
+No resources found in dso202-practical-02 namespace.
+
+$ kubectl get pvc -l app=webnote --no-headers | wc -l
+4
+
+$ kubectl apply -f manifests/10-statefulset-webnote.yaml
+statefulset.apps/webnote created
+
+$ kubectl rollout status statefulset/webnote --timeout=300s
+Waiting for 3 pods to be ready...
+Waiting for 2 pods to be ready...
+Waiting for 2 pods to be ready...
+Waiting for 2 pods to be ready...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 3 new pods have been updated...
+
+$ kubectl exec client -- wget -qO- http://webnote-1.webnote.dso202-practical-02.svc.cluster.local
+<h2>webnote-1</h2>
+created: 2026-11-03T15:00:20Z on worker-node-2
+started: 2026-11-03T15:00:20Z on worker-node-2
+started: 2026-11-03T15:01:19Z on worker-node-2
+started: 2026-11-03T15:03:07Z on worker-node-2
+started: 2026-11-03T15:04:26Z on worker-node-2
+
+$ kubectl get pvc -l app=webnote
+NAME                STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+content-webnote-0   Bound    pvc-53b1dbc4-eee5-417e-95db-390ca448c028   1Gi        RWO            standard       <unset>                 5m16s
+content-webnote-1   Bound    pvc-2edbdb58-a4db-4adb-9f73-fbc0c49eff99   1Gi        RWO            standard       <unset>                 4m44s
+content-webnote-2   Bound    pvc-f6e1b353-f566-46a8-a5c5-2761b8cd7d0d   1Gi        RWO            standard       <unset>                 3m58s
+content-webnote-3   Bound    pvc-3ad24d76-7170-4d41-884d-d02d08a84985   1Gi        RWO            standard       <unset>                 3m9s
+

@@ -1,0 +1,44 @@
+$ kubectl apply -f manifests/08-deployment-shared-pvc.yaml
+persistentvolumeclaim/shared-data created
+deployment.apps/shared-writer created
+
+$ kubectl rollout status deployment/shared-writer --timeout=180s
+Waiting for deployment "shared-writer" rollout to finish: 0 of 3 updated replicas are available...
+Waiting for deployment "shared-writer" rollout to finish: 1 of 3 updated replicas are available...
+Waiting for deployment "shared-writer" rollout to finish: 2 of 3 updated replicas are available...
+deployment "shared-writer" successfully rolled out
+
+$ kubectl get pods -l app=shared-writer -o custom-columns=NAME:.metadata.name,NODE:.spec.nodeName
+NAME                             NODE
+shared-writer-6f4b987c7b-4c62b   worker-node-1
+shared-writer-6f4b987c7b-jl4h4   worker-node-1
+shared-writer-6f4b987c7b-wxwjr   worker-node-1
+
+$ kubectl get pvc shared-data
+NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+shared-data   Bound    pvc-52e34021-78ba-484d-8df7-fe805918e26b   1Gi        RWO            standard       <unset>                 10s
+
+$ kubectl exec deploy/shared-writer -- cat /data/visitors.log
+2026-11-03T14:58:54Z pod=shared-writer-6f4b987c7b-wxwjr node=worker-node-1
+2026-11-03T14:58:54Z pod=shared-writer-6f4b987c7b-4c62b node=worker-node-1
+2026-11-03T14:58:55Z pod=shared-writer-6f4b987c7b-jl4h4 node=worker-node-1
+
+$ kubectl delete pod -l app=shared-writer --field-selector status.phase=Running --wait=false
+pod "shared-writer-6f4b987c7b-4c62b" deleted from dso202-practical-02 namespace
+pod "shared-writer-6f4b987c7b-jl4h4" deleted from dso202-practical-02 namespace
+pod "shared-writer-6f4b987c7b-wxwjr" deleted from dso202-practical-02 namespace
+
+$ kubectl get pods -l app=shared-writer -o custom-columns=NAME:.metadata.name,NODE:.spec.nodeName
+NAME                             NODE
+shared-writer-6f4b987c7b-cnw7j   worker-node-1
+shared-writer-6f4b987c7b-kztgp   worker-node-1
+shared-writer-6f4b987c7b-lfjdn   worker-node-1
+
+$ kubectl delete -f manifests/08-deployment-shared-pvc.yaml
+persistentvolumeclaim "shared-data" deleted from dso202-practical-02 namespace
+deployment.apps "shared-writer" deleted from dso202-practical-02 namespace
+
+$ kubectl get pvc
+NAME             STATUS   VOLUME          CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pvc-web-static   Bound    pv-web-static   1Gi        RWO            manual         <unset>                 82s
+

@@ -1,0 +1,57 @@
+$ kubectl apply -f manifests/12-secret-postgres.yaml
+secret/postgres-credentials created
+
+$ kubectl get secret postgres-credentials
+NAME                   TYPE     DATA   AGE
+postgres-credentials   Opaque   3      0s
+
+$ kubectl get secret postgres-credentials -o jsonpath='{.data.POSTGRES_USER}' | base64 -d; echo
+taskuser
+
+$ kubectl apply -f manifests/13-service-postgres.yaml
+service/postgres-headless created
+service/postgres created
+
+$ kubectl get services
+NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+postgres            ClusterIP   10.96.199.239   <none>        5432/TCP   0s
+postgres-headless   ClusterIP   None            <none>        5432/TCP   0s
+webnote             ClusterIP   None            <none>        80/TCP     5m26s
+
+$ kubectl apply -f manifests/14-statefulset-postgres.yaml
+statefulset.apps/postgres created
+
+$ kubectl get pods -l app=postgres -w
+NAME         READY   STATUS    RESTARTS   AGE
+postgres-0   0/1     Pending   0          0s
+postgres-0   0/1     Pending   0          0s
+postgres-0   0/1     Pending   0          4s
+postgres-0   0/1     ContainerCreating   0          5s
+postgres-0   0/1     ContainerCreating   0          6s
+postgres-0   0/1     Running             0          39s
+postgres-0   1/1     Running             0          56s
+postgres-0   1/1     Running             0          56s
+
+$ kubectl logs postgres-0 | tail -n 4
+2026-11-03 15:05:52.942 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-11-03 15:05:52.952 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-03 15:05:52.995 UTC [79] LOG:  database system was shut down at 2026-11-03 15:05:52 UTC
+2026-11-03 15:05:53.018 UTC [1] LOG:  database system is ready to accept connections
+
+$ kubectl get pvc data-postgres-0
+NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
+data-postgres-0   Bound    pvc-5e3115c0-affd-430c-81bb-846964432420   2Gi        RWO            dso202-retain   <unset>                 58s
+
+$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                   STORAGECLASS    VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-web-static                              1Gi        RWO            Retain           Bound    dso202-practical-02/pvc-web-static      manual          <unset>                          8m1s
+pvc-2edbdb58-a4db-4adb-9f73-fbc0c49eff99   1Gi        RWO            Delete           Bound    dso202-practical-02/content-webnote-1   standard        <unset>                          5m49s
+pvc-3ad24d76-7170-4d41-884d-d02d08a84985   1Gi        RWO            Delete           Bound    dso202-practical-02/content-webnote-3   standard        <unset>                          4m14s
+pvc-53b1dbc4-eee5-417e-95db-390ca448c028   1Gi        RWO            Delete           Bound    dso202-practical-02/content-webnote-0   standard        <unset>                          6m22s
+pvc-5e3115c0-affd-430c-81bb-846964432420   2Gi        RWO            Retain           Bound    dso202-practical-02/data-postgres-0     dso202-retain   <unset>                          55s
+pvc-f6e1b353-f566-46a8-a5c5-2761b8cd7d0d   1Gi        RWO            Delete           Bound    dso202-practical-02/content-webnote-2   standard        <unset>                          5m3s
+
+$ kubectl exec postgres-0 -- sh -c 'echo "$PGDATA"; ls /var/lib/postgresql'
+/var/lib/postgresql/18/docker
+18
+

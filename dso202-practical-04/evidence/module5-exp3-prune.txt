@@ -1,0 +1,87 @@
+# ---- Module 5 Step 5: Experiment 3 - automatic pruning ----
+$ kubectl get service -n demo-app
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+webapp-svc   ClusterIP   10.96.120.181   <none>        80/TCP    3m14s
+
+$ git rm -q gitops-demo/manifests/service.yaml && git status --short -- gitops-demo
+D  gitops-demo/manifests/service.yaml
+
+$ git commit -q -m 'practical-04: remove webapp-svc from Git (Experiment 3 - prune)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>' -- gitops-demo/manifests/service.yaml && git log --oneline -1
+09c185a practical-04: remove webapp-svc from Git (Experiment 3 - prune)
+
+$ git push origin main 2>&1 | tail -1
+   a091227..09c185a  main -> main
+
+$ kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite
+application.argoproj.io/my-webapp annotated
+
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH    REVISION
+my-webapp   Synced   Healthy   09c185a867462c1bf780a8f081ebfef0faac728b
+
+$ kubectl get service -n demo-app
+No resources found in demo-app namespace.
+
+$ kubectl get all -n demo-app
+NAME                                 READY   STATUS    RESTARTS   AGE
+pod/webapp-deploy-6bd9c658d4-7s7b2   1/1     Running   0          41s
+pod/webapp-deploy-6bd9c658d4-mx5xv   1/1     Running   0          41s
+pod/webapp-deploy-6bd9c658d4-rsmgv   1/1     Running   0          3m24s
+pod/webapp-deploy-6bd9c658d4-t7n4d   1/1     Running   0          41s
+
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/webapp-deploy   4/4     4            4           3m24s
+
+NAME                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/webapp-deploy-6bd9c658d4   4         4         4       3m24s
+
+$ kubectl get events -n argocd --field-selector involvedObject.name=my-webapp --sort-by=.lastTimestamp | tail -n 4
+5s          Normal   OperationStarted     application/my-webapp   Initiated automated sync to '09c185a867462c1bf780a8f081ebfef0faac728b'
+5s          Normal   ResourceUpdated      application/my-webapp   Updated sync status: Synced -> OutOfSync
+5s          Normal   ResourceUpdated      application/my-webapp   Updated sync status: OutOfSync -> Synced
+5s          Normal   OperationCompleted   application/my-webapp   Sync operation to 09c185a867462c1bf780a8f081ebfef0faac728b succeeded
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{range .status.operationState.syncResult.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}'
+Service	webapp-svc	Pruned	pruned
+Deployment	webapp-deploy	Synced	deployment.apps/webapp-deploy unchanged
+
+# ---- optional: bring the Service back with git revert ----
+$ git revert --no-edit HEAD 2>&1 | tail -2
+ 1 file changed, 19 insertions(+)
+ create mode 100644 dso202-practical-04/gitops-demo/manifests/service.yaml
+
+$ git log --oneline -1
+cffd17d Revert "practical-04: remove webapp-svc from Git (Experiment 3 - prune)"
+
+$ git push origin main 2>&1 | tail -1
+   09c185a..cffd17d  main -> main
+
+$ kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite
+application.argoproj.io/my-webapp annotated
+
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH    REVISION
+my-webapp   Synced   Healthy   cffd17d3e0fb901119d66216a2131f19b4c68e77
+
+$ kubectl get service -n demo-app
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+webapp-svc   ClusterIP   10.96.27.99   <none>        80/TCP    3s
+
+$ kubectl run curl-test -n demo-app --rm -i --restart=Never --image=busybox:1.37 -- wget -qO- http://webapp-svc 2>&1 | head -2
+Server address: 10.244.2.38:80
+Server name: webapp-deploy-6bd9c658d4-7s7b2
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{range .status.history[*]}{.id}{"  "}{.revision}{"  "}{.deployedAt}{"\n"}{end}'
+0  7abd00f47daec41c615e1e2c01730f4cf1aa6c91  2026-11-03T15:57:24Z
+1  a09122732e6035ce547807475b409409849ff74e  2026-11-03T15:59:50Z
+2  09c185a867462c1bf780a8f081ebfef0faac728b  2026-11-03T16:00:43Z
+3  cffd17d3e0fb901119d66216a2131f19b4c68e77  2026-11-03T16:00:53Z
+
+$ git log --oneline -5 -- .
+cffd17d Revert "practical-04: remove webapp-svc from Git (Experiment 3 - prune)"
+09c185a practical-04: remove webapp-svc from Git (Experiment 3 - prune)
+a091227 practical-04: scale webapp to 4 replicas (Experiment 1)
+7abd00f practical-04: initial GitOps desired state (webapp, 2 replicas) and Argo CD Application
+

@@ -1,0 +1,26 @@
+$ uname -sr; lsb_release -ds
+Linux 6.14.0-37-generic
+Ubuntu 25.04
+
+$ docker --version
+Docker version 29.2.1, build a5c7197
+
+$ kind --version
+kind version 0.20.0
+
+$ kubectl version
+Client Version: v1.36.3
+Kustomize Version: v5.8.1
+Server Version: v1.36.1
+
+$ kubectl get nodes -o wide
+NAME            STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+control-plane   Ready    control-plane   58d   v1.36.1   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+worker-node-1   Ready    <none>          58d   v1.36.1   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+worker-node-2   Ready    <none>          58d   v1.36.1   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+
+$ docker info --format "{{.OperatingSystem}}"
+Docker Desktop
+
+$ kubectl exec postgres-0 -- postgres --version
+postgres (PostgreSQL) 18.6

@@ -1,0 +1,84 @@
+LAST SEEN   TYPE     REASON             OBJECT                                MESSAGE
+60m         Normal   Killing            pod/shared-writer-6f4b987c7b-h8b6s    Stopping container writer
+60m         Normal   SuccessfulCreate   replicaset/shared-writer-6f4b987c7b   Created pod: shared-writer-6f4b987c7b-qgbcj
+60m         Normal   Scheduled          pod/shared-writer-6f4b987c7b-qgbcj    Successfully assigned dso202-practical-02/shared-writer-6f4b987c7b-qgbcj to worker-node-2
+60m         Normal   Killing            pod/shared-writer-6f4b987c7b-jq22r    Stopping container writer
+60m         Normal   Scheduled          pod/shared-writer-6f4b987c7b-2nl4m    Successfully assigned dso202-practical-02/shared-writer-6f4b987c7b-2nl4m to worker-node-2
+60m         Normal   SuccessfulCreate   replicaset/shared-writer-6f4b987c7b   Created pod: shared-writer-6f4b987c7b-7886f
+60m         Normal   Scheduled          pod/shared-writer-6f4b987c7b-7886f    Successfully assigned dso202-practical-02/shared-writer-6f4b987c7b-7886f to worker-node-2
+60m         Normal   SuccessfulCreate   replicaset/shared-writer-6f4b987c7b   Created pod: shared-writer-6f4b987c7b-2nl4m
+60m         Normal   Killing            pod/shared-writer-6f4b987c7b-99qxl    Stopping container writer
+60m         Normal   Created            pod/shared-writer-6f4b987c7b-7886f    Container created
+60m         Normal   Started            pod/shared-writer-6f4b987c7b-7886f    Container started
+60m         Normal   Pulled             pod/shared-writer-6f4b987c7b-2nl4m    Container image "busybox:1.37" already present on machine and can be accessed by the pod
+60m         Normal   Pulled             pod/shared-writer-6f4b987c7b-7886f    Container image "busybox:1.37" already present on machine and can be accessed by the pod
+60m         Normal   Started            pod/shared-writer-6f4b987c7b-2nl4m    Container started
+60m         Normal   Created            pod/shared-writer-6f4b987c7b-2nl4m    Container created
+60m         Normal   Pulled             pod/shared-writer-6f4b987c7b-qgbcj    Container image "busybox:1.37" already present on machine and can be accessed by the pod
+60m         Normal   Created            pod/shared-writer-6f4b987c7b-qgbcj    Container created
+60m         Normal   Started            pod/shared-writer-6f4b987c7b-qgbcj    Container started
+58m         Normal   Killing            pod/shared-writer-6f4b987c7b-2nl4m    Stopping container writer
+58m         Normal   Killing            pod/shared-writer-6f4b987c7b-qgbcj    Stopping container writer
+58m         Normal   Killing            pod/shared-writer-6f4b987c7b-7886f    Stopping container writer
+39m         Normal   Scheduled          pod/webnote-1                         Successfully assigned dso202-practical-02/webnote-1 to worker-node-2
+39m         Normal   Killing            pod/webnote-1                         Stopping container nginx
+39m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-1 in StatefulSet webnote successful
+39m         Normal   Started            pod/webnote-1                         Container started
+39m         Normal   Pulled             pod/webnote-1                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+39m         Normal   Created            pod/webnote-1                         Container created
+39m         Normal   Pulled             pod/webnote-1                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+39m         Normal   Started            pod/webnote-1                         Container started
+39m         Normal   Created            pod/webnote-1                         Container created
+37m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-3 in StatefulSet webnote successful
+37m         Normal   Scheduled          pod/webnote-3                         Successfully assigned dso202-practical-02/webnote-3 to worker-node-2
+37m         Normal   Pulled             pod/webnote-3                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+37m         Normal   Created            pod/webnote-3                         Container created
+37m         Normal   Created            pod/webnote-3                         Container created
+37m         Normal   Started            pod/webnote-3                         Container started
+37m         Normal   Pulled             pod/webnote-3                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+37m         Normal   Started            pod/webnote-3                         Container started
+35m         Normal   Killing            pod/webnote-3                         Stopping container nginx
+35m         Normal   SuccessfulDelete   statefulset/webnote                   Delete Pod webnote-3 in StatefulSet webnote successful
+35m         Normal   Killing            pod/webnote-2                         Stopping container nginx
+35m         Normal   SuccessfulDelete   statefulset/webnote                   Delete Pod webnote-2 in StatefulSet webnote successful
+33m         Normal   Scheduled          pod/webnote-2                         Successfully assigned dso202-practical-02/webnote-2 to worker-node-1
+33m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-2 in StatefulSet webnote successful
+33m         Normal   Created            pod/webnote-2                         Container created
+33m         Normal   Started            pod/webnote-2                         Container started
+33m         Normal   Pulled             pod/webnote-2                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+33m         Normal   Started            pod/webnote-2                         Container started
+33m         Normal   Created            pod/webnote-2                         Container created
+33m         Normal   Pulled             pod/webnote-2                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+28m         Normal   Killing            pod/webnote-0                         Stopping container nginx
+28m         Normal   Killing            pod/webnote-1                         Stopping container nginx
+28m         Normal   Killing            pod/webnote-2                         Stopping container nginx
+26m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-0 in StatefulSet webnote successful
+26m         Normal   Started            pod/webnote-0                         Container started
+26m         Normal   Created            pod/webnote-0                         Container created
+26m         Normal   Pulled             pod/webnote-0                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+26m         Normal   Scheduled          pod/webnote-0                         Successfully assigned dso202-practical-02/webnote-0 to worker-node-1
+26m         Normal   Started            pod/webnote-0                         Container started
+26m         Normal   Created            pod/webnote-0                         Container created
+26m         Normal   Pulled             pod/webnote-0                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+26m         Normal   Pulled             pod/webnote-1                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+26m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-1 in StatefulSet webnote successful
+26m         Normal   Scheduled          pod/webnote-1                         Successfully assigned dso202-practical-02/webnote-1 to worker-node-2
+26m         Normal   Created            pod/webnote-1                         Container created
+26m         Normal   Started            pod/webnote-1                         Container started
+26m         Normal   Started            pod/webnote-1                         Container started
+26m         Normal   Pulled             pod/webnote-1                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+26m         Normal   Created            pod/webnote-1                         Container created
+26m         Normal   SuccessfulCreate   statefulset/webnote                   Create Pod webnote-2 in StatefulSet webnote successful
+26m         Normal   Scheduled          pod/webnote-2                         Successfully assigned dso202-practical-02/webnote-2 to worker-node-1
+26m         Normal   Pulled             pod/webnote-2                         Container image "busybox:1.37" already present on machine and can be accessed by the pod
+26m         Normal   Created            pod/webnote-2                         Container created
+26m         Normal   Started            pod/webnote-2                         Container started
+26m         Normal   Created            pod/webnote-2                         Container created
+26m         Normal   Pulled             pod/webnote-2                         Container image "nginx:1.31-alpine" already present on machine and can be accessed by the pod
+26m         Normal   Started            pod/webnote-2                         Container started
+3m9s        Normal   Killing            pod/postgres-0                        Stopping container postgres
+3m8s        Normal   Scheduled          pod/postgres-0                        Successfully assigned dso202-practical-02/postgres-0 to worker-node-1
+3m8s        Normal   Pulled             pod/postgres-0                        Container image "postgres:18-alpine" already present on machine and can be accessed by the pod
+3m8s        Normal   Created            pod/postgres-0                        Container created
+3m8s        Normal   SuccessfulCreate   statefulset/postgres                  Create Pod postgres-0 in StatefulSet postgres successful
+3m7s        Normal   Started            pod/postgres-0                        Container started

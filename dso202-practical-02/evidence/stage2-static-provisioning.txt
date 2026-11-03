@@ -1,0 +1,77 @@
+$ kubectl get pvc
+NAME             STATUS   VOLUME          CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pvc-web-static   Bound    pv-web-static   1Gi        RWO            manual         <unset>                 58d
+
+$ kubectl get storageclass manual
+Error from server (NotFound): storageclasses.storage.k8s.io "manual" not found
+
+$ kubectl apply -f manifests/05-pod-static-writer.yaml
+pod/static-writer created
+
+$ kubectl wait --for=condition=Ready pod/static-writer --timeout=90s
+pod/static-writer condition met
+
+$ kubectl get pod static-writer -o wide
+NAME            READY   STATUS    RESTARTS   AGE   IP           NODE            NOMINATED NODE   READINESS GATES
+static-writer   1/1     Running   0          12s   10.244.2.5   worker-node-1   <none>           <none>
+
+$ kubectl exec static-writer -- cat /data/ledger.txt
+2026-11-03T14:57:35Z start pod=static-writer node=worker-node-1
+
+$ cat /home/tadashi/dso202-p2-storage/pv-web-static/ledger.txt
+2026-11-03T14:57:35Z start pod=static-writer node=worker-node-1
+
+# ---- 7.3 Pod deleted and recreated ----
+$ kubectl delete pod static-writer
+pod "static-writer" deleted from dso202-practical-02 namespace
+
+$ kubectl apply -f manifests/05-pod-static-writer.yaml
+pod/static-writer created
+
+$ kubectl wait --for=condition=Ready pod/static-writer --timeout=90s
+pod/static-writer condition met
+
+$ kubectl exec static-writer -- cat /data/ledger.txt
+2026-11-03T14:57:35Z start pod=static-writer node=worker-node-1
+2026-11-03T14:57:47Z start pod=static-writer node=worker-node-1
+
+# ---- 7.4 claim deleted -> Released ----
+$ kubectl delete pod static-writer
+pod "static-writer" deleted from dso202-practical-02 namespace
+
+$ kubectl delete pvc pvc-web-static
+persistentvolumeclaim "pvc-web-static" deleted from dso202-practical-02 namespace
+
+$ kubectl get pv
+NAME            CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS     CLAIM                                STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-web-static   1Gi        RWO            Retain           Released   dso202-practical-02/pvc-web-static   manual         <unset>                          58d
+
+$ cat /home/tadashi/dso202-p2-storage/pv-web-static/ledger.txt
+2026-11-03T14:57:35Z start pod=static-writer node=worker-node-1
+2026-11-03T14:57:47Z start pod=static-writer node=worker-node-1
+
+$ kubectl delete pv pv-web-static
+persistentvolume "pv-web-static" deleted
+
+$ ls -l /home/tadashi/dso202-p2-storage/pv-web-static/
+total 4
+-rw-r--r-- 1 tadashi tadashi 128 Nov  3 20:57 ledger.txt
+
+# ---- Step 10 recreate all three objects ----
+$ kubectl apply -f manifests/03-pv-static.yaml
+persistentvolume/pv-web-static created
+
+$ kubectl apply -f manifests/04-pvc-static.yaml
+persistentvolumeclaim/pvc-web-static created
+
+$ kubectl apply -f manifests/05-pod-static-writer.yaml
+pod/static-writer created
+
+$ kubectl wait --for=condition=Ready pod/static-writer --timeout=90s
+pod/static-writer condition met
+
+$ kubectl exec static-writer -- cat /data/ledger.txt
+2026-11-03T14:57:35Z start pod=static-writer node=worker-node-1
+2026-11-03T14:57:47Z start pod=static-writer node=worker-node-1
+2026-11-03T14:58:01Z start pod=static-writer node=worker-node-1
+

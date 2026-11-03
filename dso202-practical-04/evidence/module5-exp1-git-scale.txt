@@ -1,0 +1,59 @@
+# ---- Module 5 Step 3: Experiment 1 - scale 2 -> 4 through Git ----
+$ kubectl get deployment webapp-deploy -n demo-app
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+webapp-deploy   2/2     2            2           2m21s
+
+$ sed -i 's/^  replicas: 2$/  replicas: 4/' gitops-demo/manifests/deployment.yaml
+
+$ git diff -- gitops-demo/manifests/deployment.yaml
+diff --git a/dso202-practical-04/gitops-demo/manifests/deployment.yaml b/dso202-practical-04/gitops-demo/manifests/deployment.yaml
+index 191f9cc..11ea261 100644
+--- a/dso202-practical-04/gitops-demo/manifests/deployment.yaml
++++ b/dso202-practical-04/gitops-demo/manifests/deployment.yaml
+@@ -17,7 +17,7 @@ metadata:
+ spec:
+   # Experiment 1 changes this value in Git; Experiment 2 changes it with
+   # kubectl and Argo CD's selfHeal puts it back to whatever Git says.
+-  replicas: 2
++  replicas: 4
+   selector:
+     matchLabels:
+       app: webapp
+
+$ git commit -q -m 'practical-04: scale webapp to 4 replicas (Experiment 1)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>' -- gitops-demo/manifests/deployment.yaml && git log --oneline -1
+a091227 practical-04: scale webapp to 4 replicas (Experiment 1)
+
+$ git push origin main 2>&1 | tail -1
+   7abd00f..a091227  main -> main
+
+# Equivalent of the UI 'Refresh' button (otherwise Argo CD polls Git every ~3 minutes):
+$ kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite
+application.argoproj.io/my-webapp annotated
+
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH        REVISION
+my-webapp   Synced   Progressing   a09122732e6035ce547807475b409409849ff74e
+
+$ kubectl get deployment webapp-deploy -n demo-app
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+webapp-deploy   4/4     4            4           2m27s
+
+$ kubectl get pods -n demo-app -o wide
+NAME                             READY   STATUS    RESTARTS   AGE     IP            NODE            NOMINATED NODE   READINESS GATES
+webapp-deploy-6bd9c658d4-5t6h4   1/1     Running   0          1s      10.244.1.22   worker-node-2   <none>           <none>
+webapp-deploy-6bd9c658d4-bhhdg   1/1     Running   0          2m27s   10.244.2.36   worker-node-1   <none>           <none>
+webapp-deploy-6bd9c658d4-rsmgv   1/1     Running   0          2m27s   10.244.1.20   worker-node-2   <none>           <none>
+webapp-deploy-6bd9c658d4-swl7r   1/1     Running   0          1s      10.244.2.37   worker-node-1   <none>           <none>
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{range .status.history[*]}{.id}{"  "}{.revision}{"  "}{.deployedAt}{"\n"}{end}'
+0  7abd00f47daec41c615e1e2c01730f4cf1aa6c91  2026-11-03T15:57:24Z
+1  a09122732e6035ce547807475b409409849ff74e  2026-11-03T15:59:50Z
+
+
+# ---- after the 2 new Pods became Ready ----
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH    REVISION
+my-webapp   Synced   Healthy   a09122732e6035ce547807475b409409849ff74e
+

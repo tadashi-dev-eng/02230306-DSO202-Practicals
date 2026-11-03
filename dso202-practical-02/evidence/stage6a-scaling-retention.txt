@@ -1,0 +1,50 @@
+$ kubectl scale statefulset webnote --replicas=4
+statefulset.apps/webnote scaled
+
+$ kubectl wait --for=condition=Ready pod/webnote-3 --timeout=120s
+pod/webnote-3 condition met
+
+$ kubectl get pvc -l app=webnote --no-headers | wc -l
+4
+
+$ kubectl scale statefulset webnote --replicas=2
+statefulset.apps/webnote scaled
+
+$ kubectl get pods -l app=webnote -w
+NAME        READY   STATUS        RESTARTS   AGE
+webnote-3   1/1     Terminating   0          16s
+webnote-3   1/1     Terminating   0          16s
+webnote-3   0/1     Completed     0          17s
+webnote-3   0/1     Completed     0          18s
+webnote-3   0/1     Completed     0          18s
+webnote-3   0/1     Completed     0          18s
+webnote-2   1/1     Terminating   0          67s
+webnote-2   1/1     Terminating   0          67s
+webnote-2   0/1     Completed     0          68s
+webnote-2   0/1     Completed     0          69s
+webnote-2   0/1     Completed     0          69s
+
+$ kubectl get pods -l app=webnote
+NAME        READY   STATUS    RESTARTS   AGE
+webnote-0   1/1     Running   0          2m31s
+webnote-1   1/1     Running   0          46s
+
+$ kubectl get pvc -l app=webnote
+NAME                STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+content-webnote-0   Bound    pvc-53b1dbc4-eee5-417e-95db-390ca448c028   1Gi        RWO            standard       <unset>                 2m31s
+content-webnote-1   Bound    pvc-2edbdb58-a4db-4adb-9f73-fbc0c49eff99   1Gi        RWO            standard       <unset>                 119s
+content-webnote-2   Bound    pvc-f6e1b353-f566-46a8-a5c5-2761b8cd7d0d   1Gi        RWO            standard       <unset>                 73s
+content-webnote-3   Bound    pvc-3ad24d76-7170-4d41-884d-d02d08a84985   1Gi        RWO            standard       <unset>                 24s
+
+$ kubectl scale statefulset webnote --replicas=3
+statefulset.apps/webnote scaled
+
+$ kubectl wait --for=condition=Ready pod/webnote-2 --timeout=120s
+pod/webnote-2 condition met
+
+$ kubectl exec client -- wget -qO- http://webnote-2.webnote.dso202-practical-02.svc.cluster.local
+<h2>webnote-2</h2>
+created: 2026-11-03T15:00:57Z on worker-node-1
+started: 2026-11-03T15:00:57Z on worker-node-1
+started: 2026-11-03T15:02:06Z on worker-node-1
+

@@ -1,0 +1,77 @@
+# ---- Module 5 Step 1: desired state pushed to GitHub ----
+$ git log --oneline -1 -- gitops-demo/manifests
+7abd00f practical-04: initial GitOps desired state (webapp, 2 replicas) and Argo CD Application
+
+$ git ls-remote https://github.com/tadashi-dev-eng/02230306-DSO202-Practicals.git refs/heads/main
+7abd00f47daec41c615e1e2c01730f4cf1aa6c91	refs/heads/main
+
+$ ls gitops-demo/manifests
+deployment.yaml
+service.yaml
+
+# ---- Module 5 Step 2: register the Application ----
+$ kubectl get namespace demo-app
+Error from server (NotFound): namespaces "demo-app" not found
+
+$ kubectl apply -f argocd/argocd-app.yaml
+application.argoproj.io/my-webapp created
+
+$ kubectl get applications -n argocd
+NAME        SYNC STATUS   HEALTH STATUS
+my-webapp   Synced        Progressing
+
+$ kubectl get application my-webapp -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+NAME        SYNC     HEALTH        REVISION
+my-webapp   Synced   Progressing   7abd00f47daec41c615e1e2c01730f4cf1aa6c91
+
+$ kubectl get namespace demo-app
+NAME       STATUS   AGE
+demo-app   Active   67s
+
+$ kubectl get all -n demo-app
+NAME                                 READY   STATUS              RESTARTS   AGE
+pod/webapp-deploy-6bd9c658d4-bhhdg   0/1     ContainerCreating   0          67s
+pod/webapp-deploy-6bd9c658d4-rsmgv   1/1     Running             0          67s
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/webapp-svc   ClusterIP   10.96.120.181   <none>        80/TCP    67s
+
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/webapp-deploy   1/2     2            1           67s
+
+NAME                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/webapp-deploy-6bd9c658d4   2         2         1       67s
+
+$ kubectl get pods -n demo-app -o wide
+NAME                             READY   STATUS              RESTARTS   AGE   IP            NODE            NOMINATED NODE   READINESS GATES
+webapp-deploy-6bd9c658d4-bhhdg   0/1     ContainerCreating   0          67s   <none>        worker-node-1   <none>           <none>
+webapp-deploy-6bd9c658d4-rsmgv   1/1     Running             0          67s   10.244.1.20   worker-node-2   <none>           <none>
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\t"}{.health.status}{"\n"}{end}'
+Service	webapp-svc	Synced	
+Deployment	webapp-deploy	Synced	
+
+$ kubectl run curl-test -n demo-app --rm -i --restart=Never --image=busybox:1.37 -- wget -qO- http://webapp-svc
+Server address: 10.244.1.20:80
+Server name: webapp-deploy-6bd9c658d4-rsmgv
+Date: 03/Nov/2026:15:58:32 +0000
+URI: /
+Request ID: 9c8034a36c9e25def742a9b12bc27159
+All commands and output from this session will be recorded in container logs, including credentials and sensitive information passed through the command prompt.
+If you don't see a command prompt, try pressing enter.
+pod "curl-test" deleted from demo-app namespace
+
+# ---- after the image pull on worker-node-1 finished ----
+$ kubectl get applications -n argocd
+NAME        SYNC STATUS   HEALTH STATUS
+my-webapp   Synced        Healthy
+
+$ kubectl get pods -n demo-app -o wide
+NAME                             READY   STATUS    RESTARTS   AGE     IP            NODE            NOMINATED NODE   READINESS GATES
+webapp-deploy-6bd9c658d4-bhhdg   1/1     Running   0          2m11s   10.244.2.36   worker-node-1   <none>           <none>
+webapp-deploy-6bd9c658d4-rsmgv   1/1     Running   0          2m11s   10.244.1.20   worker-node-2   <none>           <none>
+
+$ kubectl get application my-webapp -n argocd -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\t"}{.health.status}{"\n"}{end}'
+Service	webapp-svc	Synced	
+Deployment	webapp-deploy	Synced	
+

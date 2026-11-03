@@ -1,0 +1,72 @@
+$ kubectl logs postgres-0 | grep -i 'init process complete'
+PostgreSQL init process complete; ready for start up.
+
+$ kubectl exec postgres-0 -- psql -U taskuser -d tasktracker -c "CREATE TABLE tasks (id serial PRIMARY KEY, title text NOT NULL, done boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now());"
+CREATE TABLE
+
+$ kubectl exec postgres-0 -- psql -U taskuser -d tasktracker -c "INSERT INTO tasks (title) VALUES ('Complete Practical 2'), ('Read Unit II notes'), ('Draft the report');"
+INSERT 0 3
+
+$ kubectl exec postgres-0 -- psql -U taskuser -d tasktracker -c "SELECT id, title, done FROM tasks ORDER BY id;"
+ id |        title         | done 
+----+----------------------+------
+  1 | Complete Practical 2 | f
+  2 | Read Unit II notes   | f
+  3 | Draft the report     | f
+(3 rows)
+
+
+# ---- 12.3 delete the database Pod ----
+$ kubectl delete pod postgres-0
+pod "postgres-0" deleted from dso202-practical-02 namespace
+
+$ kubectl wait --for=condition=Ready pod/postgres-0 --timeout=180s
+pod/postgres-0 condition met
+
+$ kubectl exec postgres-0 -- psql -U taskuser -d tasktracker -c "SELECT count(*) FROM tasks;"
+ count 
+-------
+     3
+(1 row)
+
+
+$ kubectl logs postgres-0 | head -n 8
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-11-03 15:06:10.204 UTC [1] LOG:  starting PostgreSQL 18.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-11-03 15:06:10.205 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-11-03 15:06:10.205 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-11-03 15:06:10.223 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-03 15:06:10.279 UTC [37] LOG:  database system was shut down at 2026-11-03 15:06:06 UTC
+
+$ kubectl get pvc data-postgres-0
+NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
+data-postgres-0   Bound    pvc-5e3115c0-affd-430c-81bb-846964432420   2Gi        RWO            dso202-retain   <unset>                 83s
+
+$ kubectl get pod postgres-0
+NAME         READY   STATUS    RESTARTS   AGE
+postgres-0   1/1     Running   0          13s
+
+$ kubectl exec client -- nslookup postgres.dso202-practical-02.svc.cluster.local
+Server:		10.96.0.10
+Address:	10.96.0.10:53
+
+
+Name:	postgres.dso202-practical-02.svc.cluster.local
+Address: 10.96.199.239
+
+
+$ kubectl exec client -- nslookup postgres-0.postgres-headless.dso202-practical-02.svc.cluster.local
+Server:		10.96.0.10
+Address:	10.96.0.10:53
+
+
+Name:	postgres-0.postgres-headless.dso202-practical-02.svc.cluster.local
+Address: 10.244.2.31
+
+
+$ kubectl get pod postgres-0 -o wide
+NAME         READY   STATUS    RESTARTS   AGE   IP            NODE            NOMINATED NODE   READINESS GATES
+postgres-0   1/1     Running   0          15s   10.244.2.31   worker-node-1   <none>           <none>
+

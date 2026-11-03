@@ -1,0 +1,82 @@
+# Edit 1: partition 0 -> 2, image nginx:1.30-alpine -> nginx:1.31-alpine
+$ grep -n 'partition:\|image: nginx' manifests/10-statefulset-webnote.yaml
+49:      partition: 2
+122:          image: nginx:1.31-alpine
+
+$ kubectl apply -f manifests/10-statefulset-webnote.yaml
+statefulset.apps/webnote configured
+
+$ kubectl get pods -l app=webnote -o custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[0].image
+NAME        IMAGE
+webnote-0   nginx:1.30-alpine
+webnote-1   nginx:1.30-alpine
+webnote-2   nginx:1.31-alpine
+
+# Edit 2: partition 2 -> 0 to complete the rollout
+$ grep -n 'partition:\|image: nginx' manifests/10-statefulset-webnote.yaml
+49:      partition: 0
+122:          image: nginx:1.31-alpine
+
+$ kubectl apply -f manifests/10-statefulset-webnote.yaml
+statefulset.apps/webnote configured
+
+$ kubectl rollout status statefulset/webnote --timeout=300s
+Waiting for partitioned roll out to finish: 1 out of 3 new pods have been updated...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+Waiting for partitioned roll out to finish: 2 out of 3 new pods have been updated...
+Waiting for partitioned roll out to finish: 2 out of 3 new pods have been updated...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+partitioned roll out complete: 3 new pods have been updated...
+
+$ kubectl get pods -l app=webnote -o custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[0].image
+NAME        IMAGE
+webnote-0   nginx:1.31-alpine
+webnote-1   nginx:1.31-alpine
+webnote-2   nginx:1.31-alpine
+
+$ kubectl exec client -- wget -qO- http://webnote-0.webnote.dso202-practical-02.svc.cluster.local
+<h2>webnote-0</h2>
+created: 2026-11-03T14:59:38Z on worker-node-1
+started: 2026-11-03T14:59:38Z on worker-node-1
+note added by hand in Stage 5
+started: 2026-11-03T15:03:34Z on worker-node-1
+
+$ kubectl explain statefulset.spec.updateStrategy.rollingUpdate | sed -n '1,40p'
+GROUP:      apps
+KIND:       StatefulSet
+VERSION:    v1
+
+FIELD: rollingUpdate <RollingUpdateStatefulSetStrategy>
+
+
+DESCRIPTION:
+    RollingUpdate is used to communicate parameters when Type is
+    RollingUpdateStatefulSetStrategyType.
+    RollingUpdateStatefulSetStrategy is used to communicate parameter for
+    RollingUpdateStatefulSetStrategyType.
+    
+FIELDS:
+  maxUnavailable	<IntOrString>
+    The maximum number of pods that can be unavailable during the update. Value
+    can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+    Absolute number is calculated from percentage by rounding up. This can not
+    be 0. Defaults to 1. This field is beta-level and is enabled by default. The
+    field applies to all pods in the range 0 to Replicas-1. That means if there
+    is any unavailable pod in the range 0 to Replicas-1, it will be counted
+    towards MaxUnavailable. This setting might not be effective for the
+    OrderedReady podManagementPolicy. That policy ensures pods are created and
+    become ready one at a time.
+
+  partition	<integer>
+    Partition indicates the ordinal at which the StatefulSet should be
+    partitioned for updates. During a rolling update, all pods from ordinal
+    Replicas-1 to Partition are updated. All pods from ordinal Partition-1 to 0
+    remain untouched. This is helpful in being able to do a canary based
+    deployment. The default value is 0.
+
+
+
