@@ -1,0 +1,38 @@
+# ---- Task 0: pre-flight ----
+$ kubectl config current-context
+kind-dso202
+
+$ kubectl cluster-info
+Kubernetes control plane is running at https://127.0.0.1:45725
+CoreDNS is running at https://127.0.0.1:45725/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+$ kubectl get nodes -o wide
+NAME            STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+control-plane   Ready    control-plane   58s   v1.36.1   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+worker-node-1   Ready    <none>          42s   v1.36.1   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+worker-node-2   Ready    <none>          43s   v1.36.1   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.12.72-linuxkit (amd64)   containerd://2.3.1
+
+$ kubectl version --client -o yaml
+clientVersion:
+  buildDate: "2026-07-22T18:10:35Z"
+  compiler: gc
+  gitCommit: 0f29094e5b73085e3802ecc1298ecae13866bfe6
+  gitTreeState: clean
+  gitVersion: v1.36.3
+  goVersion: go1.26.5
+  major: "1"
+  minor: "36"
+  platform: linux/amd64
+kustomizeVersion: v5.8.1
+
+
+$ kubectl kustomize --help | head -n 3
+Build a set of KRM resources using a 'kustomization.yaml' file. The DIR argument must be a path to a directory containing 'kustomization.yaml', or a git repository URL with a path suffix specifying same with respect to the repository root. If DIR is omitted, '.' is assumed.
+
+Examples:
+
+$ kubectl apply --help | grep -- '--kustomize'
+    -k, --kustomize='':
+

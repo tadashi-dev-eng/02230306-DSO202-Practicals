@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    environment: qa
+  name: webapp-qa
+---
+apiVersion: v1
+data:
+  index.html: |
+    <!doctype html>
+    <html>
+      <head><title>webapp - QA</title></head>
+      <body>
+        <h1>QA environment</h1>
+        <p>environment: qa</p>
+        <p>owned by the qa-team - test data only</p>
+      </body>
+    </html>
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: qa
+  name: web-content-5kg4ghcdcg
+  namespace: webapp-qa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: qa
+  name: webapp
+  namespace: webapp-qa
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: webapp
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    training.example.com/owner: qa-team
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: qa
+  name: webapp
+  namespace: webapp-qa
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: webapp
+        app.kubernetes.io/part-of: dso202-practical-05
+        environment: qa
+    spec:
+      containers:
+      - image: nginx:1.30-alpine
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: content
+          readOnly: true
+      volumes:
+      - configMap:
+          name: web-content-5kg4ghcdcg
+        name: content

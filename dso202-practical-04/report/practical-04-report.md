@@ -55,15 +55,7 @@ All raw output is in `evidence/`. Commands are run from the `dso202-practical-04
 kubectl config current-context
 kubectl get nodes
 ```
-
-```text
-kind-dso202-p2
-
-NAME            STATUS   ROLES           AGE   VERSION
-control-plane   Ready    control-plane   58d   v1.36.1
-worker-node-1   Ready    <none>          58d   v1.36.1
-worker-node-2   Ready    <none>          58d   v1.36.1
-```
+![alt text](../assets/step1.png)
 
 One control-plane and two worker nodes, all `Ready`.
 
@@ -77,8 +69,6 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 kubectl get pods -n argocd
 ```
-
-An earlier install attempt had left Argo CD in a broken state: one controller was crash-looping.
 
 ```text
 argocd-applicationset-controller-58bb5c7479-8q4gq   0/1     Error     221 (7m47s ago)   7d7h
@@ -110,20 +100,7 @@ kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 kubectl get pods -n argocd
 ```
 
-```text
-applications.argoproj.io        2026-10-27T08:17:40Z
-applicationsets.argoproj.io     2026-11-03T15:49:23Z
-appprojects.argoproj.io         2026-10-27T08:17:40Z
-
-NAME                                                READY   STATUS    RESTARTS   AGE
-argocd-application-controller-0                     1/1     Running   0          ...
-argocd-applicationset-controller-5cc5ff4f47-h7lw6   1/1     Running   0          ...
-argocd-dex-server-...                               1/1     Running   0          ...
-argocd-notifications-controller-788bdb44d5-p57qk    1/1     Running   0          ...
-argocd-redis-...                                    1/1     Running   0          ...
-argocd-repo-server-656b96f67d-xf2cw                 1/1     Running   0          ...
-argocd-server-764dc8f847-56tjx                      1/1     Running   0          ...
-```
+![alt text](../assets/s2.png)
 
 All three Argo CD CRDs now exist and all 7 components are `1/1 Running`. Because `stable` had moved on, the re-apply also upgraded Argo CD from v3.5.6 to v3.5.7. The new dex and redis images took several minutes to pull, so the first `kubectl wait` timed out and had to be re-run.
 
@@ -133,14 +110,11 @@ Evidence: `evidence/module4-ui-access.txt`
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-kubectl port-forward svc/argocd-server -n argocd 8443:443     # keep running in a second terminal
+kubectl port-forward svc/argocd-server -n argocd 8443:443 
 ```
 
-```text
-<16-character password — redacted, this repository is public>
-Forwarding from 127.0.0.1:8443 -> 8080
-Forwarding from [::1]:8443 -> 8080
-```
+![alt text](../assets/s3.png)
+
 
 Verify the UI and API are reachable and the admin login works:
 
@@ -152,16 +126,11 @@ curl -sk https://localhost:8443/api/v1/session -H 'Content-Type: application/jso
   -d '{"username":"admin","password":"<password>"}'
 ```
 
-```text
-HTTP 200
-ok
-{"Version":"v3.5.7"}
-{"token":"eyJhbGciOi... (session token issued - login OK)"}
-```
+![alt text](../assets/s3.1.png)
 
 The UI is served at `https://localhost:8443` with a self-signed certificate, so the browser warning is expected. The `admin` login succeeds.
 
-> 📸 *Add a screenshot of the Argo CD login page / application tile here: `![Argo CD UI](../assets/argocd-ui.png)`*
+![alt text](../assets/ui.png)
 
 ### 3.4 Module 5 Step 1 — The desired state in GitHub
 
@@ -177,10 +146,7 @@ git log --oneline -1 -- gitops-demo/manifests
 git ls-remote https://github.com/tadashi-dev-eng/02230306-DSO202-Practicals.git refs/heads/main
 ```
 
-```text
-7abd00f practical-04: initial GitOps desired state (webapp, 2 replicas) and Argo CD Application
-7abd00f47daec41c615e1e2c01730f4cf1aa6c91	refs/heads/main
-```
+![alt text](../assets/git.png)
 
 The local commit and the GitHub `main` branch both point to `7abd00f`. This commit is the desired state.
 
@@ -197,25 +163,6 @@ kubectl get all -n demo-app
 kubectl get pods -n demo-app -o wide
 ```
 
-```text
-Error from server (NotFound): namespaces "demo-app" not found
-application.argoproj.io/my-webapp created
-
-NAME        SYNC STATUS   HEALTH STATUS
-my-webapp   Synced        Healthy
-
-NAME       STATUS   AGE
-demo-app   Active   67s
-
-service/webapp-svc   ClusterIP   10.96.120.181   <none>   80/TCP   67s
-deployment.apps/webapp-deploy   2/2 ...
-replicaset.apps/webapp-deploy-6bd9c658d4   2   2   2
-
-NAME                             READY   STATUS    RESTARTS   AGE     IP            NODE
-webapp-deploy-6bd9c658d4-bhhdg   1/1     Running   0          2m11s   10.244.2.36   worker-node-1
-webapp-deploy-6bd9c658d4-rsmgv   1/1     Running   0          2m11s   10.244.1.20   worker-node-2
-```
-
 Before the apply, `demo-app` did not exist. Argo CD created the namespace (`CreateNamespace=true`), the Deployment and the Service from Git, and the two Pods were spread across both workers. The only object I applied by hand was the `Application`. For about the first minute health showed `Progressing`, until the image finished pulling on `worker-node-1`.
 
 Verify which resources Argo CD manages and that the app actually serves traffic:
@@ -226,40 +173,22 @@ kubectl get application my-webapp -n argocd \
 kubectl run curl-test -n demo-app --rm -i --restart=Never --image=busybox:1.37 -- wget -qO- http://webapp-svc
 ```
 
-```text
-Service	webapp-svc	Synced
-Deployment	webapp-deploy	Synced
+![alt text](../assets/Application.png)
 
-Server address: 10.244.1.20:80
-Server name: webapp-deploy-6bd9c658d4-rsmgv
-```
-
-> 📸 *Add a screenshot of the `my-webapp` resource tree (Application → Deployment → ReplicaSet → Pods, Service): `![my-webapp tree](../assets/argocd-tree.png)`*
+![alt text](../assets/ui2.png)
 
 ### 3.6 Module 5 Step 3 — Experiment 1: Git as the single source of truth
 
-Evidence: `evidence/module5-exp1-git-scale.txt`
 
 I changed `replicas: 2` to `replicas: 4` in Git. No kubectl command touched the Deployment.
 
 ```bash
-kubectl get deployment webapp-deploy -n demo-app          # before
+kubectl get deployment webapp-deploy -n demo-app          
 sed -i 's/^  replicas: 2$/  replicas: 4/' gitops-demo/manifests/deployment.yaml
 git diff -- gitops-demo/manifests/deployment.yaml
 git commit -m "practical-04: scale webapp to 4 replicas (Experiment 1)" -- gitops-demo/manifests/deployment.yaml
 git push origin main
-kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite   # = UI "Refresh"
-```
-
-```text
-webapp-deploy   2/2     2            2           2m21s
-
--  replicas: 2
-+  replicas: 4
-
-a091227 practical-04: scale webapp to 4 replicas (Experiment 1)
-   7abd00f..a091227  main -> main
-application.argoproj.io/my-webapp annotated
+kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite  
 ```
 
 Verify:
@@ -272,21 +201,7 @@ kubectl get pods -n demo-app -o wide
 kubectl get application my-webapp -n argocd \
   -o jsonpath='{range .status.history[*]}{.id}{"  "}{.revision}{"  "}{.deployedAt}{"\n"}{end}'
 ```
-
-```text
-NAME        SYNC     HEALTH    REVISION
-my-webapp   Synced   Healthy   a09122732e6035ce547807475b409409849ff74e
-
-webapp-deploy   4/4     4            4           2m27s
-
-webapp-deploy-6bd9c658d4-5t6h4   1/1   Running   0   1s      10.244.1.22   worker-node-2
-webapp-deploy-6bd9c658d4-bhhdg   1/1   Running   0   2m27s   10.244.2.36   worker-node-1
-webapp-deploy-6bd9c658d4-rsmgv   1/1   Running   0   2m27s   10.244.1.20   worker-node-2
-webapp-deploy-6bd9c658d4-swl7r   1/1   Running   0   1s      10.244.2.37   worker-node-1
-
-0  7abd00f47daec41c615e1e2c01730f4cf1aa6c91  2026-11-03T15:57:24Z
-1  a09122732e6035ce547807475b409409849ff74e  2026-11-03T15:59:50Z
-```
+![alt text](../assets/replica.png)
 
 Argo CD picked up commit `a091227` and created two new Pods (age 1s). The two original Pods kept running. Argo CD's deployment history now maps each change in the cluster to a Git commit hash, which is the audit trail GitOps promises.
 
@@ -305,15 +220,7 @@ for i in $(seq 1 15); do
   sleep 1
 done
 ```
-
-```text
-deployment.apps/webapp-deploy scaled
-22:00:07  spec=1  ready=1  app=OutOfSync/Healthy
-22:00:08  spec=4  ready=4  app=Synced/Healthy
-22:00:09  spec=4  ready=4  app=Synced/Healthy
-...
-22:00:23  spec=4  ready=4  app=Synced/Healthy
-```
+![alt text](../assets/selfhealing.png)
 
 Within about 1 second the application went `OutOfSync` and Argo CD put `spec.replicas` back to 4, the value in Git.
 
@@ -326,22 +233,11 @@ kubectl get application my-webapp -n argocd \
   -o jsonpath='{.status.operationState.operation.initiatedBy}{"\n"}{.status.operationState.message}{"\n"}'
 ```
 
-```text
-webapp-deploy-6bd9c658d4-7s7b2   1/1   Running   0   17s   10.244.2.38   worker-node-1
-webapp-deploy-6bd9c658d4-mx5xv   1/1   Running   0   17s   10.244.1.23   worker-node-2
-webapp-deploy-6bd9c658d4-rsmgv   1/1   Running   0   3m    10.244.1.20   worker-node-2
-webapp-deploy-6bd9c658d4-t7n4d   1/1   Running   0   17s   10.244.2.39   worker-node-1
-
-Normal   OperationCompleted   application/my-webapp   Partial sync operation to a09122732e... succeeded
-Normal   ResourceUpdated      application/my-webapp   Updated sync status: OutOfSync -> Synced
-
-{"automated":true}
-successfully synced (all tasks run)
-```
+![alt text](../assets/sh.png)
 
 The sync was `initiatedBy: {"automated":true}`, not by a person. Self-heal restored the replica count but not the same Pods: three of the four are new (age 17s) and only `rsmgv` survived. The manual scale-down had already deleted the other three, so their in-memory state was lost anyway. Self-heal corrects declared configuration; it does not undo side effects.
 
-> 📸 *Optional: screenshot of the UI showing `OutOfSync` → `Synced`.*
+![alt text](../assets/synced.png)
 
 ### 3.8 Module 5 Step 5 — Experiment 3: Automatic pruning
 
@@ -355,12 +251,6 @@ git push origin main
 kubectl annotate application my-webapp -n argocd argocd.argoproj.io/refresh=normal --overwrite
 ```
 
-```text
-webapp-svc   ClusterIP   10.96.120.181   <none>   80/TCP   3m14s
-09c185a practical-04: remove webapp-svc from Git (Experiment 3 - prune)
-   a091227..09c185a  main -> main
-```
-
 Verify:
 
 ```bash
@@ -369,13 +259,7 @@ kubectl get service -n demo-app
 kubectl get application my-webapp -n argocd \
   -o jsonpath='{range .status.operationState.syncResult.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}'
 ```
-
-```text
-my-webapp   Synced   09c185a867462c1bf780a8f081ebfef0faac728b
-No resources found in demo-app namespace.
-Service	webapp-svc	Pruned	pruned
-Deployment	webapp-deploy	Synced	deployment.apps/webapp-deploy unchanged
-```
+![alt text](../assets/txt.png)
 
 Argo CD recorded `webapp-svc` as **Pruned** and deleted it from the cluster. The Deployment, which is still in Git, was left `unchanged`.
 
@@ -390,21 +274,7 @@ kubectl run curl-test -n demo-app --rm -i --restart=Never --image=busybox:1.37 -
 kubectl get application my-webapp -n argocd \
   -o jsonpath='{range .status.history[*]}{.id}{"  "}{.revision}{"  "}{.deployedAt}{"\n"}{end}'
 ```
-
-```text
-cffd17d Revert "practical-04: remove webapp-svc from Git (Experiment 3 - prune)"
-   09c185a..cffd17d  main -> main
-
-webapp-svc   ClusterIP   10.96.27.99   <none>   80/TCP   3s
-
-Server address: 10.244.2.38:80
-Server name: webapp-deploy-6bd9c658d4-7s7b2
-
-0  7abd00f47daec41c615e1e2c01730f4cf1aa6c91  2026-11-03T15:57:24Z
-1  a09122732e6035ce547807475b409409849ff74e  2026-11-03T15:59:50Z
-2  09c185a867462c1bf780a8f081ebfef0faac728b  2026-11-03T16:00:43Z
-3  cffd17d3e0fb901119d66216a2131f19b4c68e77  2026-11-03T16:00:53Z
-```
+![alt text](../assets/git1.png)
 
 The Service came back and serves traffic again, so a rollback in GitOps is just a Git revert. Note that its ClusterIP changed from `10.96.120.181` to `10.96.27.99`, because a pruned object is truly deleted and the restored one is a new object. Clients should use the DNS name `webapp-svc`, not the IP. The four history entries match the four commits in `git log`.
 
@@ -417,11 +287,8 @@ kubectl delete -f argocd/argocd-app.yaml
 kubectl delete namespace demo-app
 kubectl get applications -n argocd
 kubectl get ns demo-app
-# when all practicals are finished:  kind delete cluster --name dso202-p2
 ```
-
-> **TODO:** run this when finished and paste the output here.
-
+![alt text](../assets/clear.png)
 ---
 
 ## 4. Analysis

@@ -1,0 +1,126 @@
+# ---- Task 3: compare dev and prod without touching the cluster ----
+# (rendered into evidence/rendered/ instead of /tmp so the files are kept with the submission)
+$ kubectl kustomize examples/webapp/overlays/dev > evidence/rendered/webapp-dev.yaml
+
+$ kubectl kustomize examples/webapp/overlays/prod > evidence/rendered/webapp-prod.yaml
+
+$ diff -u evidence/rendered/webapp-dev.yaml evidence/rendered/webapp-prod.yaml || true
+--- evidence/rendered/webapp-dev.yaml	2026-11-03 23:25:03.355075438 +0600
++++ evidence/rendered/webapp-prod.yaml	2026-11-03 23:25:03.469076009 +0600
+@@ -1,40 +1,46 @@
+ apiVersion: v1
+ kind: Namespace
+ metadata:
++  annotations:
++    training.example.com/change-policy: cab-approved
+   labels:
+-    environment: dev
+-  name: webapp-dev
++    environment: prod
++  name: webapp-prod
+ ---
+ apiVersion: v1
+ data:
+   index.html: |
+     <!doctype html>
+     <html>
+-      <head><title>webapp - DEVELOPMENT</title></head>
++      <head><title>webapp - PRODUCTION</title></head>
+       <body>
+-        <h1>DEVELOPMENT environment</h1>
+-        <p>environment: dev</p>
++        <h1>PRODUCTION environment</h1>
++        <p>environment: prod</p>
+       </body>
+     </html>
+ kind: ConfigMap
+ metadata:
++  annotations:
++    training.example.com/change-policy: cab-approved
+   labels:
+     app.kubernetes.io/managed-by: kustomize
+     app.kubernetes.io/part-of: dso202-practical-05
+-    environment: dev
+-  name: web-content-cmb6kg9m8t
+-  namespace: webapp-dev
++    environment: prod
++  name: web-content-chb9cdd8k9
++  namespace: webapp-prod
+ ---
+ apiVersion: v1
+ kind: Service
+ metadata:
++  annotations:
++    training.example.com/change-policy: cab-approved
+   labels:
+     app.kubernetes.io/managed-by: kustomize
+     app.kubernetes.io/name: webapp
+     app.kubernetes.io/part-of: dso202-practical-05
+-    environment: dev
++    environment: prod
+   name: webapp
+-  namespace: webapp-dev
++  namespace: webapp-prod
+ spec:
+   ports:
+   - name: http
+@@ -47,28 +53,32 @@
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
++  annotations:
++    training.example.com/change-policy: cab-approved
+   labels:
+     app.kubernetes.io/managed-by: kustomize
+     app.kubernetes.io/name: webapp
+     app.kubernetes.io/part-of: dso202-practical-05
+-    environment: dev
++    environment: prod
+   name: webapp
+-  namespace: webapp-dev
++  namespace: webapp-prod
+ spec:
+-  replicas: 1
++  replicas: 3
+   selector:
+     matchLabels:
+       app.kubernetes.io/name: webapp
+   template:
+     metadata:
++      annotations:
++        training.example.com/change-policy: cab-approved
+       labels:
+         app.kubernetes.io/managed-by: kustomize
+         app.kubernetes.io/name: webapp
+         app.kubernetes.io/part-of: dso202-practical-05
+-        environment: dev
++        environment: prod
+     spec:
+       containers:
+-      - image: nginx:1.31-alpine
++      - image: nginx:1.30-alpine
+         name: nginx
+         ports:
+         - containerPort: 80
+@@ -80,10 +90,10 @@
+           periodSeconds: 5
+         resources:
+           limits:
+-            cpu: 200m
+-            memory: 128Mi
++            cpu: 500m
++            memory: 256Mi
+           requests:
+-            cpu: 50m
++            cpu: 100m
+             memory: 64Mi
+         volumeMounts:
+         - mountPath: /usr/share/nginx/html
+@@ -91,5 +101,5 @@
+           readOnly: true
+       volumes:
+       - configMap:
+-          name: web-content-cmb6kg9m8t
++          name: web-content-chb9cdd8k9
+         name: content
+

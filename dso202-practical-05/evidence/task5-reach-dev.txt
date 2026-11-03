@@ -1,0 +1,23 @@
+# ---- Task 5: reach the application ----
+# Port 8080 on this laptop is a Jenkins container (it answered kubectl's localhost:8080 fallback), so 8081 is used
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:8080/
+HTTP 403
+
+$ kubectl port-forward -n webapp-dev service/webapp 8081:80      # second terminal
+Forwarding from 127.0.0.1:8081 -> 80
+Forwarding from [::1]:8081 -> 80
+
+$ curl -s http://127.0.0.1:8081
+<!doctype html>
+<html>
+  <head><title>webapp - DEVELOPMENT</title></head>
+  <body>
+    <h1>DEVELOPMENT environment</h1>
+    <p>environment: dev</p>
+  </body>
+</html>
+
+$ curl -s http://127.0.0.1:8081 | grep -o 'environment: [a-z]*'
+environment: dev
+
+(port-forward stopped with Ctrl-C)

@@ -1,0 +1,46 @@
+# =============================================================================
+# File    : examples/webapp/overlays/qa/kustomization.yaml
+# Purpose : QA environment built from the SAME base. No deployment.yaml or
+#           service.yaml is copied: every difference is a field below.
+# Render  : kubectl kustomize examples/webapp/overlays/qa
+# Apply   : kubectl apply -k examples/webapp/overlays/qa
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+# Requirement: namespace webapp-qa
+namespace: webapp-qa
+
+# Requirement: environment label qa (metadata + Pod template, not selectors)
+labels:
+  - pairs:
+      environment: qa
+    includeSelectors: false
+    includeTemplates: true
+
+# Requirement: 2 replicas
+replicas:
+  - name: webapp
+    count: 2
+
+# Requirement: unique index.html (replaces the base page, same logical name)
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html
+
+# Requirement: owner annotation on the Deployment via a JSON 6902 patch.
+# A JSON patch is path-based, so it needs an explicit target - unlike a
+# strategic-merge patch, which finds its target from the patch body.
+patches:
+  - path: patch-annotation.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: webapp

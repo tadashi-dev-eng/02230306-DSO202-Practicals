@@ -1,0 +1,61 @@
+# ---- Task 8: what the prod patch changed ----
+$ cat examples/webapp/overlays/prod/patch-resources.yaml
+# =============================================================================
+# File    : examples/webapp/overlays/prod/patch-resources.yaml
+# Purpose : Strategic-merge patch owned by the prod overlay. It identifies the
+#           target by apiVersion/kind/metadata.name and the container by its
+#           name (the merge key for 'containers'), then states ONLY the values
+#           production changes.
+# Merge   : requests.memory is deliberately NOT listed, so the base value
+#           (64Mi) survives - proof that the patch merges rather than replaces.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+spec:
+  template:
+    spec:
+      containers:
+        - name: nginx
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+# base container resources:
+$ kubectl kustomize examples/webapp/base | grep -A6 'resources:'
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+
+# rendered prod container resources:
+$ kubectl kustomize examples/webapp/overlays/prod | grep -A6 'resources:'
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+
+# what the cluster actually received:
+$ kubectl get deploy webapp -n webapp-prod -o jsonpath='{.spec.template.spec.containers[0].resources}{"\n"}'
+{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"64Mi"}}
+
+$ kubectl get deploy webapp -n webapp-staging -o jsonpath='{.spec.template.spec.containers[0].resources}{"\n"}'
+{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}
+
+# everything else from the base container survived the patch:
+$ kubectl kustomize examples/webapp/overlays/prod | grep -E 'image:|containerPort|readinessProbe|mountPath'
+      - image: nginx:1.30-alpine
+        - containerPort: 80
+        readinessProbe:
+        - mountPath: /usr/share/nginx/html
+

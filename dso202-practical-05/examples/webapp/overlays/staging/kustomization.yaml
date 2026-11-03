@@ -1,0 +1,34 @@
+# =============================================================================
+# File    : examples/webapp/overlays/staging/kustomization.yaml
+# Purpose : Staging - production-like replica count and image, default
+#           resources from the base.
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+namespace: webapp-staging
+
+labels:
+  - pairs:
+      environment: staging
+    includeSelectors: false
+    includeTemplates: true
+
+replicas:
+  - name: webapp
+    count: 2
+
+# Same tag as production: staging should test what prod will run.
+images:
+  - name: nginx
+    newTag: 1.30-alpine
+
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html

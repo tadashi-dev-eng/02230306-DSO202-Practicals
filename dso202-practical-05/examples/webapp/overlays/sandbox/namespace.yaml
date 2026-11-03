@@ -1,0 +1,8 @@
+# =============================================================================
+# File    : examples/webapp/overlays/sandbox/namespace.yaml
+# Purpose : Namespace for the sandbox overlay (challenge extension).
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webapp-sandbox

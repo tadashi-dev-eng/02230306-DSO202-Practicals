@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    environment: dev
+  name: webapp-dev
+---
+apiVersion: v1
+data:
+  index.html: |
+    <!doctype html>
+    <html>
+      <head><title>webapp - DEVELOPMENT</title></head>
+      <body>
+        <h1>DEVELOPMENT environment</h1>
+        <p>environment: dev</p>
+      </body>
+    </html>
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: dev
+  name: web-content-cmb6kg9m8t
+  namespace: webapp-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: dev
+  name: webapp
+  namespace: webapp-dev
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: webapp
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/part-of: dso202-practical-05
+    environment: dev
+  name: webapp
+  namespace: webapp-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: webapp
+        app.kubernetes.io/part-of: dso202-practical-05
+        environment: dev
+    spec:
+      containers:
+      - image: nginx:1.31-alpine
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: content
+          readOnly: true
+      volumes:
+      - configMap:
+          name: web-content-cmb6kg9m8t
+        name: content

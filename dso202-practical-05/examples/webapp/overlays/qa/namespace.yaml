@@ -1,0 +1,8 @@
+# =============================================================================
+# File    : examples/webapp/overlays/qa/namespace.yaml
+# Purpose : Namespace for the QA environment (created by this overlay).
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webapp-qa

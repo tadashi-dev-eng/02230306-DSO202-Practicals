@@ -1,0 +1,29 @@
+# =============================================================================
+# File    : examples/webapp/base/kustomization.yaml
+# Purpose : Environment-neutral base. Rendered alone it has no namespace and
+#           is never applied directly - only through an overlay.
+# Render  : kubectl kustomize examples/webapp/base
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+# Added to every object's metadata (and Pod template), but NOT to selectors:
+# selectors are immutable on a Deployment, so only stable labels belong there.
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: dso202-practical-05
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
+    includeTemplates: true
+
+# Builds a ConfigMap from index.html. Kustomize appends a hash of the content
+# to the name (web-content-<hash>) and rewrites every reference to it, so a
+# content change produces a new name and therefore a rollout.
+configMapGenerator:
+  - name: web-content
+    files:
+      - index.html

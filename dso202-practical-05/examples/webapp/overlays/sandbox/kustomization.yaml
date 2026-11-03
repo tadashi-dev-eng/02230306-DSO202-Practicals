@@ -1,0 +1,25 @@
+# =============================================================================
+# File    : examples/webapp/overlays/sandbox/kustomization.yaml
+# Purpose : Challenge extension - namePrefix in ONE overlay only, to observe
+#           reference-aware transformation. Base resources are not copied.
+# Render  : kubectl kustomize examples/webapp/overlays/sandbox
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+namespace: webapp-sandbox
+
+# Prepended to the names of the resources this overlay renders. Kustomize
+# also rewrites every field that REFERS to a renamed resource (for example the
+# Deployment's configMap volume), which is what makes a prefix safe.
+namePrefix: sandbox-
+
+labels:
+  - pairs:
+      environment: sandbox
+    includeSelectors: false
+    includeTemplates: true

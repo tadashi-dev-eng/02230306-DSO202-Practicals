@@ -1,0 +1,41 @@
+# =============================================================================
+# File    : examples/webapp/overlays/dev/kustomization.yaml
+# Purpose : Development environment. Everything that differs from the base is
+#           stated here in a few lines - nothing is copied from base/.
+# Render  : kubectl kustomize examples/webapp/overlays/dev
+# Apply   : kubectl apply -k examples/webapp/overlays/dev
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+# Sets metadata.namespace on every namespaced object from the base.
+namespace: webapp-dev
+
+# Environment label on metadata and Pod templates, kept out of selectors.
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+    includeTemplates: true
+
+# One replica is enough for development.
+replicas:
+  - name: webapp
+    count: 1
+
+# Dev tries the newer nginx minor release before staging/prod adopt it.
+images:
+  - name: nginx
+    newTag: 1.31-alpine
+
+# Replace the base page with dev's own page. behavior: replace keeps the same
+# logical name (web-content), so the Deployment reference still resolves.
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html

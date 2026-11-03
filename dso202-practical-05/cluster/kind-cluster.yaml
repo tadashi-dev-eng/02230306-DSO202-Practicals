@@ -1,0 +1,57 @@
+# =============================================================================
+# File        : cluster/kind-cluster.yaml
+# Practical   : DSO202 Practical 5 - Environment-specific configuration with
+#               Kustomize
+# Purpose     : The course's three-node kind cluster (1 control plane, 2
+#               workers). Kustomize needs no special cluster features; the
+#               second worker exists so replica spread across nodes is visible.
+# Apply with  : ~/go/bin/kind create cluster --config cluster/kind-cluster.yaml
+# Delete with : ~/go/bin/kind delete cluster --name dso202
+# Note        : /usr/local/bin/kind on this laptop is v0.20.0 and is first on
+#               PATH; the cluster is created with ~/go/bin/kind (v0.32.0),
+#               which matches the pinned node image below.
+# =============================================================================
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+# Determines container names (dso202-control-plane, dso202-worker,
+# dso202-worker2) and the kubectl context name (kind-dso202).
+name: dso202
+
+networking:
+  # API server published on loopback only.
+  apiServerAddress: "127.0.0.1"
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/16"
+
+nodes:
+  # Control plane: tainted by kind, so the webapp Pods never land here.
+  - role: control-plane
+    image: kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          name: control-plane
+
+  # Worker 1
+  - role: worker
+    image: kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: worker-node-1
+          kubeletExtraArgs:
+            node-labels: "dso202/node-role=worker,dso202/node-index=1"
+
+  # Worker 2
+  - role: worker
+    image: kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          name: worker-node-2
+          kubeletExtraArgs:
+            node-labels: "dso202/node-role=worker,dso202/node-index=2"

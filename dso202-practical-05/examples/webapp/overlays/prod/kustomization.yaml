@@ -1,0 +1,43 @@
+# =============================================================================
+# File    : examples/webapp/overlays/prod/kustomization.yaml
+# Purpose : Production - three replicas, pinned image, larger resources via a
+#           strategic-merge patch, and a change-control annotation.
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+namespace: webapp-prod
+
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false
+    includeTemplates: true
+
+replicas:
+  - name: webapp
+    count: 3
+
+# Pinned explicitly so a change to the base tag cannot reach prod unnoticed.
+images:
+  - name: nginx
+    newTag: 1.30-alpine
+
+# Added to every object rendered by this overlay.
+commonAnnotations:
+  training.example.com/change-policy: cab-approved
+
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html
+
+# Strategic-merge patch: only the fields written in the patch change; every
+# other field of the base Deployment (including requests.memory) is kept.
+patches:
+  - path: patch-resources.yaml

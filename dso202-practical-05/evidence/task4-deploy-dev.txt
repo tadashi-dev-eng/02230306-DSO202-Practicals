@@ -1,0 +1,54 @@
+# ---- Task 4: deploy dev safely (render -> diff -> apply -> verify) ----
+$ kubectl kustomize examples/webapp/overlays/dev | grep -E '^kind:|^  name:|namespace:|replicas:|image:'
+kind: Namespace
+  name: webapp-dev
+kind: ConfigMap
+  name: web-content-cmb6kg9m8t
+  namespace: webapp-dev
+kind: Service
+  name: webapp
+  namespace: webapp-dev
+kind: Deployment
+  name: webapp
+  namespace: webapp-dev
+  replicas: 1
+      - image: nginx:1.31-alpine
+
+$ kubectl diff -k examples/webapp/overlays/dev | grep -E '^(\+\+\+|---|\+kind|\+  name|\+  namespace)' || true
+Error from server (NotFound): namespaces "webapp-dev" not found
+
+$ kubectl apply -k examples/webapp/overlays/dev
+namespace/webapp-dev created
+configmap/web-content-cmb6kg9m8t created
+service/webapp created
+deployment.apps/webapp created
+
+$ kubectl rollout status deployment/webapp -n webapp-dev --timeout=180s
+Waiting for deployment "webapp" rollout to finish: 0 of 1 updated replicas are available...
+deployment "webapp" successfully rolled out
+
+$ kubectl get all -n webapp-dev
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/webapp-6c8f9d6d9b-zgvb7   1/1     Running   0          12s
+
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/webapp   ClusterIP   10.96.224.154   <none>        80/TCP    12s
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/webapp   1/1     1            1           12s
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/webapp-6c8f9d6d9b   1         1         1       12s
+
+$ kubectl get configmap -n webapp-dev
+NAME                     DATA   AGE
+kube-root-ca.crt         1      12s
+web-content-cmb6kg9m8t   1      12s
+
+$ kubectl get pods -n webapp-dev -o wide --show-labels
+NAME                      READY   STATUS    RESTARTS   AGE   IP           NODE            NOMINATED NODE   READINESS GATES   LABELS
+webapp-6c8f9d6d9b-zgvb7   1/1     Running   0          12s   10.244.2.2   worker-node-1   <none>           <none>            app.kubernetes.io/managed-by=kustomize,app.kubernetes.io/name=webapp,app.kubernetes.io/part-of=dso202-practical-05,environment=dev,pod-template-hash=6c8f9d6d9b
+
+$ kubectl diff -k examples/webapp/overlays/dev; echo "kubectl diff exit code: $?"
+kubectl diff exit code: 0
+

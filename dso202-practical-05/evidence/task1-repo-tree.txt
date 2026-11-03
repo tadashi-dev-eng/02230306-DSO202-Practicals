@@ -1,0 +1,109 @@
+# ---- Task 1: repository tree ----
+$ tree examples/webapp
+examples/webapp
+├── base
+│   ├── deployment.yaml
+│   ├── index.html
+│   ├── kustomization.yaml
+│   └── service.yaml
+└── overlays
+    ├── dev
+    │   ├── index.html
+    │   ├── kustomization.yaml
+    │   └── namespace.yaml
+    ├── prod
+    │   ├── index.html
+    │   ├── kustomization.yaml
+    │   ├── namespace.yaml
+    │   └── patch-resources.yaml
+    └── staging
+        ├── index.html
+        ├── kustomization.yaml
+        └── namespace.yaml
+
+6 directories, 14 files
+
+# Files that exist once for all environments:
+$ ls examples/webapp/base
+deployment.yaml
+index.html
+kustomization.yaml
+service.yaml
+
+# Where the differences live (the whole of each overlay's kustomization, comments stripped):
+$ grep -v '^\s*#' examples/webapp/overlays/dev/kustomization.yaml | grep -v '^\s*$'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - namespace.yaml
+namespace: webapp-dev
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+    includeTemplates: true
+replicas:
+  - name: webapp
+    count: 1
+images:
+  - name: nginx
+    newTag: 1.31-alpine
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html
+
+$ grep -v '^\s*#' examples/webapp/overlays/staging/kustomization.yaml | grep -v '^\s*$'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - namespace.yaml
+namespace: webapp-staging
+labels:
+  - pairs:
+      environment: staging
+    includeSelectors: false
+    includeTemplates: true
+replicas:
+  - name: webapp
+    count: 2
+images:
+  - name: nginx
+    newTag: 1.30-alpine
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html
+
+$ grep -v '^\s*#' examples/webapp/overlays/prod/kustomization.yaml | grep -v '^\s*$'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - namespace.yaml
+namespace: webapp-prod
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false
+    includeTemplates: true
+replicas:
+  - name: webapp
+    count: 3
+images:
+  - name: nginx
+    newTag: 1.30-alpine
+commonAnnotations:
+  training.example.com/change-policy: cab-approved
+configMapGenerator:
+  - name: web-content
+    behavior: replace
+    files:
+      - index.html
+patches:
+  - path: patch-resources.yaml
+

@@ -1,0 +1,55 @@
+# =============================================================================
+# File    : examples/webapp/base/deployment.yaml
+# Purpose : The ONE Deployment definition shared by every environment.
+#           Overlays never copy this file; they change it with Kustomize
+#           transformers (namespace, labels, replicas, images) and patches.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  labels:
+    app.kubernetes.io/name: webapp
+spec:
+  # Base default. Each overlay sets its own count with the 'replicas' field.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webapp
+    spec:
+      containers:
+        - name: nginx
+          # Overlays may retag this with the 'images' transformer; the name
+          # 'nginx' is the key the transformer matches on.
+          image: nginx:1.30-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          # Conservative defaults. The prod overlay raises them with a
+          # strategic-merge patch (patch-resources.yaml).
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+          volumeMounts:
+            - name: content
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: content
+          configMap:
+            # Logical name only. Kustomize rewrites this to the generated,
+            # hash-suffixed name (web-content-<hash>) at render time.
+            name: web-content

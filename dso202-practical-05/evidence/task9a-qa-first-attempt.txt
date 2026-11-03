@@ -1,0 +1,31 @@
+# ---- Task 9: QA overlay - first render attempt ----
+$ cat examples/webapp/overlays/qa/patch-annotation.yaml
+# JSON 6902 patch (first attempt)
+- op: add
+  path: /metadata/annotations/training.example.com~1owner
+  value: qa-team
+
+$ kubectl kustomize examples/webapp/overlays/qa
+          readOnly: true
+      volumes:
+      - configMap:
+          name: web-content-5kg4ghcdcg
+        name: content
+exit code: 0
+# Annotation present in the rendered Deployment after the first attempt:
+$ kubectl kustomize examples/webapp/overlays/qa | awk '/^kind: Deployment/,0' | sed -n '1,5p'
+kind: Deployment
+metadata:
+  annotations:
+    training.example.com/owner: qa-team
+  labels:
+
+# Deliberate test: the same patch WITHOUT escaping '/' as '~1' in the key
+$ cat patch-annotation.yaml   # test copy
+- op: add
+  path: /metadata/annotations/training.example.com/owner
+  value: qa-team
+
+$ kubectl kustomize examples/webapp/overlays/qa | awk '/^kind: Deployment/,0' | sed -n '1,8p'
+exit code: 1
+error: add operation does not apply: doc is missing path: "/metadata/annotations/training.example.com/owner": missing value

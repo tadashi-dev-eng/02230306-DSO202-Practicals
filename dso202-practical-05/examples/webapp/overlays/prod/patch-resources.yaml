@@ -1,0 +1,24 @@
+# =============================================================================
+# File    : examples/webapp/overlays/prod/patch-resources.yaml
+# Purpose : Strategic-merge patch owned by the prod overlay. It identifies the
+#           target by apiVersion/kind/metadata.name and the container by its
+#           name (the merge key for 'containers'), then states ONLY the values
+#           production changes.
+# Merge   : requests.memory is deliberately NOT listed, so the base value
+#           (64Mi) survives - proof that the patch merges rather than replaces.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+spec:
+  template:
+    spec:
+      containers:
+        - name: nginx
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 500m
+              memory: 256Mi

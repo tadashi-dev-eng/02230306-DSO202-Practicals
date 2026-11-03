@@ -1,0 +1,56 @@
+# ---- Challenge extension: namePrefix in a sandbox overlay ----
+$ cat evidence/challenge-prediction.md
+# Challenge extension - prediction (written BEFORE rendering the sandbox overlay)
+
+| Field | Base value | Predicted sandbox value | Why |
+| --- | --- | --- | --- |
+| Deployment `metadata.name` | `webapp` | `sandbox-webapp` | namePrefix renames resources |
+| Service `metadata.name` | `webapp` | `sandbox-webapp` | namePrefix renames resources |
+| ConfigMap `metadata.name` | `web-content-<hash>` | `sandbox-web-content-<hash>` (same hash) | prefix added before the hash suffix; content unchanged |
+| Deployment `volumes[].configMap.name` | `web-content-<hash>` | `sandbox-web-content-<hash>` | reference-aware: Kustomize rewrites references to renamed objects |
+| Namespace `metadata.name` | `webapp-sandbox` | `webapp-sandbox` (NOT prefixed) | expected to be exempt because `namespace:` must keep pointing at it - **unsure** |
+| `metadata.namespace` on objects | - | `webapp-sandbox` | set by `namespace:` |
+| Service `spec.selector` / Deployment `matchLabels` | `app.kubernetes.io/name: webapp` | unchanged | labels are not names; namePrefix does not touch them |
+| Container name `nginx`, volume name `content`, port name `http` | - | unchanged | not Kubernetes object names |
+
+$ kubectl kustomize examples/webapp/overlays/sandbox > evidence/rendered/webapp-sandbox.yaml
+
+$ kubectl kustomize examples/webapp/overlays/sandbox | grep -E '^kind:|^  name:|^  namespace:'
+kind: Namespace
+  name: webapp-sandbox
+kind: ConfigMap
+  name: sandbox-web-content-8kt8822t88
+  namespace: webapp-sandbox
+kind: Service
+  name: sandbox-webapp
+  namespace: webapp-sandbox
+kind: Deployment
+  name: sandbox-webapp
+  namespace: webapp-sandbox
+
+$ kubectl kustomize examples/webapp/overlays/sandbox | grep -A1 'configMap:'
+      - configMap:
+          name: sandbox-web-content-8kt8822t88
+
+$ kubectl kustomize examples/webapp/overlays/sandbox | grep -A2 -E 'selector:|matchLabels:'
+  selector:
+    app.kubernetes.io/name: webapp
+  type: ClusterIP
+--
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webapp
+  template:
+
+$ kubectl kustomize examples/webapp/overlays/sandbox | grep -E '^      - name:|^        - name:|  - name: (http|content|nginx)|name: content|name: nginx'
+  - name: http
+        name: nginx
+          name: content
+        name: content
+
+$ kubectl kustomize examples/webapp/base | grep 'web-content-'; kubectl kustomize examples/webapp/overlays/sandbox | grep 'web-content-'
+  name: web-content-8kt8822t88
+          name: web-content-8kt8822t88
+  name: sandbox-web-content-8kt8822t88
+          name: sandbox-web-content-8kt8822t88
+

@@ -1,0 +1,9 @@
+# =============================================================================
+# File    : examples/webapp/overlays/staging/namespace.yaml
+# Purpose : The namespace that separates the staging environment. Listed as a
+#           resource so 'kubectl apply -k' creates it before the workload.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webapp-staging

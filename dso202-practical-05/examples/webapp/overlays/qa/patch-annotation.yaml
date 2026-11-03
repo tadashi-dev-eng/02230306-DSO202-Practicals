@@ -1,0 +1,14 @@
+# =============================================================================
+# File    : examples/webapp/overlays/qa/patch-annotation.yaml
+# Purpose : JSON 6902 patch - adds the QA owner annotation to the Deployment.
+# Target  : chosen in kustomization.yaml (apps/v1 Deployment 'webapp'); a JSON
+#           patch has no apiVersion/kind/name of its own.
+# Escaping: in a JSON Pointer '/' separates path segments, so the '/' inside
+#           the annotation key is written as '~1' ('~' itself would be '~0').
+#           Without it Kustomize fails with "doc is missing path".
+# Note    : the base Deployment has no metadata.annotations; Kustomize's patch
+#           engine creates the parent map, so a single 'add' is enough here.
+# =============================================================================
+- op: add
+  path: /metadata/annotations/training.example.com~1owner
+  value: qa-team
