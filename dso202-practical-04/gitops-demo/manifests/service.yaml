@@ -1,0 +1,19 @@
+# =============================================================================
+# File        : dso202-practical-04/gitops-demo/manifests/service.yaml
+# Practical   : DSO202 Practical 4 - GitOps with Argo CD
+# Purpose     : Stable ClusterIP address in front of the webapp Pods.
+# Deleted in  : Experiment 3 - removing this file from Git makes Argo CD
+#               (prune: true) delete the Service from the cluster.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-svc
+spec:
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
