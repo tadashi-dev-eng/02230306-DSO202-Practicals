@@ -1,0 +1,43 @@
+# =============================================================================
+# File        : dso202-practical-04/argocd/argocd-app.yaml
+# Practical   : DSO202 Practical 4 - GitOps with Argo CD
+# Purpose     : Register the demo application with Argo CD declaratively.
+#               This is the ONLY object applied by hand with kubectl; every
+#               object in gitops-demo/manifests/ is applied by Argo CD.
+# Apply with  : kubectl apply -f argocd/argocd-app.yaml
+# Inspect     : kubectl get application my-webapp -n argocd
+# Note        : The guide uses a separate repository (k8s-gitops-demo). This
+#               submission keeps the desired state in a sub-folder of the
+#               public coursework repository instead, so 'path' points there.
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-webapp
+  # Application objects must live in the namespace Argo CD itself runs in.
+  namespace: argocd
+spec:
+  project: default
+
+  # 1. WHERE IS THE DESIRED STATE? (GitHub)
+  source:
+    # Public repository, so Argo CD needs no credentials to clone it.
+    repoURL: https://github.com/tadashi-dev-eng/02230306-DSO202-Practicals.git
+    # HEAD of the default branch (main); every pushed commit becomes the new
+    # desired state.
+    targetRevision: HEAD
+    # Only this folder is rendered; everything else in the repo is ignored.
+    path: dso202-practical-04/gitops-demo/manifests
+
+  # 2. WHERE SHOULD IT BE DEPLOYED? (the cluster Argo CD runs in)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-app
+
+  # 3. HOW SHOULD ARGO CD SYNC IT?
+  syncPolicy:
+    automated:
+      prune: true      # delete cluster objects whose manifest was removed from Git
+      selfHeal: true   # revert manual kubectl changes (configuration drift)
+    syncOptions:
+      - CreateNamespace=true   # create 'demo-app' if it does not exist

@@ -1,0 +1,35 @@
+# =============================================================================
+# File        : dso202-practical-04/gitops-demo/manifests/deployment.yaml
+# Practical   : DSO202 Practical 4 - GitOps with Argo CD
+# Purpose     : Desired state of the demo web application. This file is NOT
+#               applied with kubectl: Argo CD reads it from GitHub and applies
+#               it to the 'demo-app' namespace.
+# Changed in  : Experiment 1 (replicas 2 -> 4) by a Git commit.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deploy
+  # No 'namespace:' here on purpose: the Application's destination.namespace
+  # (demo-app) decides where Argo CD creates this object.
+  labels:
+    app: webapp
+spec:
+  # Experiment 1 changes this value in Git; Experiment 2 changes it with
+  # kubectl and Argo CD's selfHeal puts it back to whatever Git says.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+        - name: webapp
+          # Small nginx image that answers with the server name and address in
+          # plain text, which makes it easy to see which Pod replied.
+          image: nginxdemos/hello:plain-text
+          ports:
+            - containerPort: 80
